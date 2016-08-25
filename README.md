@@ -1,0 +1,2 @@
+# vscode-translation
+vscode-translation
