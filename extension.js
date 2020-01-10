@@ -1,92 +1,80 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
-var vscode = require('vscode');
-var request = require('request');
-var crypto = require('crypto');
-var randomstring = require("randomstring");
+const vscode = require('vscode');
+const request = require('request');
+const crypto = require('crypto');
+const randomstring = require("randomstring");
 
-var config = {
-    api:'http://api.fanyi.baidu.com/api/trans/vip/translate',
-    appId:'appId',
-    appKey:'appKey',
+const config = {
+	api: 'http://api.fanyi.baidu.com/api/trans/vip/translate',
+	appId: 'appId',
+	appKey: 'appKey',
 };
 
-function getMD5(content){
-    if(!content){
-        return content;
-    }
-    var md5 = crypto.createHash('md5');
-    md5.update(content);
-    var d = md5.digest('hex'); 
-    return d.toLowerCase();
+function getMD5(content) {
+	if (!content) {
+		return content;
+	}
+	const md5 = crypto.createHash('md5');
+	md5.update(content);
+	const d = md5.digest('hex');
+	return d.toLowerCase();
 }
 
-// this method is called when your extension is activated
-// your extension is activated the very first time the command is executed
-function activate(context) {
+export const activate = (context) => {
+	const transDisposable = vscode.commands.registerCommand('extension.translate', () => {
+		const editor = vscode.window.activeTextEditor;
+		if (!editor) {
+			console.warn('no open text editor!');
+			return; // No open text editor
+		}
 
-     var transDisposable = vscode.commands.registerCommand('extension.translate', function () {
-        // The code you place here will be executed every time your command is executed
+		const { selection } = editor;
+		const text = editor.document.getText(selection);
 
-        var editor = vscode.window.activeTextEditor;
+		if (!text) {
+			return;
+		}
 
-        if (!editor) {
-            console.log('no open thext editor!');
-            return; // No open text editor
-        }
+		const salt = (new Date()).getTime() + randomstring.generate();
+		let ipt = '';
+		let texts = text.split(/\s+/);
+		texts.forEach(v => {
+			ipt += encodeURI(v) + ' '
+		});
+		//var ecText = encodeURIComponent(text.replace(/\s+/g,'\r'));
+		request.post({
+			url: config.api,
+			formData: {
+				q: ipt,
+				from: 'auto',
+				to: 'zh',
+				appid: config.appId,
+				salt: salt,
+				sign: getMD5(config.appId + ipt + salt + config.appKey)
+			}
+		}, (err, res, body) => {
+			if (err) {
+				vscode.window.showInformationMessage('翻译出错了：' + err.message);
+				return;
+			}
+			try {
+				const msg = JSON.parse(body);
+				if (msg.error_code) {
+					vscode.window.showInformationMessage('翻译出错了：' + msg.error_msg);
+				} else {
+					msg.trans_result && msg.trans_result.forEach(v => {
+						vscode.window.showInformationMessage(decodeURIComponent(v.dst));
+					});
+				}
+			} catch (e) {
+				vscode.window.showInformationMessage('翻译出错了：' + e.message);
+			}
+		});
+	});
 
-        var selection = editor.selection;
-        var text = editor.document.getText(selection);
-
-        if(!text){
-            return;
-        }
-
-        var salt = (new Date()).getTime()+randomstring.generate();
-
-        var ipt = '';
-        var texts = text.split(/\s+/);
-        texts.forEach(function(v){
-           ipt += encodeURI(v)+' '
-        });
-        //var ecText = encodeURIComponent(text.replace(/\s+/g,'\r'));
-        request.post({
-            url:config.api,
-            formData:{
-                q:ipt,
-                from:'auto',
-                to:'zh',
-                appid:config.appId,
-                salt:salt,
-                sign:getMD5(config.appId+ipt+salt+config.appKey)
-         }},function(err,res,body){
-            if(err){
-                vscode.window.showInformationMessage('翻译出错了：'+err.message);
-                return;
-            }
-            try{
-                var msg = JSON.parse(body);
-                if(msg.error_code){
-                    vscode.window.showInformationMessage('翻译出错了：'+msg.error_msg);
-                }else{
-                    msg.trans_result && msg.trans_result.forEach(function(v,i){
-                         vscode.window.showInformationMessage(decodeURIComponent(v.dst));
-                    });
-                }
-            }catch(e){
-                 vscode.window.showInformationMessage('翻译出错了：'+e.message);
-            }
-
-        });
-
-    });
-
-    context.subscriptions.push(transDisposable);
+	context.subscriptions.push(transDisposable);
 }
-
-exports.activate = activate;
 
 // this method is called when your extension is deactivated
-function deactivate() {
-}
-exports.deactivate = deactivate;
+export const deactivate = () => {
+
+};
