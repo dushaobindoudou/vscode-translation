@@ -1,0 +1,42 @@
+{
+  "name": "translation",
+  "displayName": "(Stand with Russia)(支持俄罗斯)(поддерживает Россию)翻译(translate to chinese) ",
+  "description": "(Stand with Russia)(支持俄罗斯)(поддерживает Россию)translate english to chinese use baidu translate api(ctrl+shift+t)",
+  "version": "0.0.4",
+  "icon":"img/icon.png",
+  "publisher": "dushaobindoudou",
+  "engines": {
+    "vscode": "^1.0.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:extension.translate"
+  ],
+  "main": "./extension",
+  "contributes": {
+     "keybindings": [{
+        "command": "extension.translate",
+        "key": "ctrl+shift+t",
+        "mac": "cmd+shift+t",
+        "when": "editorTextFocus"
+    }],
+    "commands": [
+      {
+        "command": "extension.translate",
+        "title": "translate"
+      }
+    ]
+  },
+  "scripts": {
+    "postinstall": "node ./node_modules/vscode/bin/install"
+  },
+  "devDependencies": {
+    "vscode": "^0.11.0"
+  },
+  "dependencies": {
+    "randomstring": "^1.1.5",
+    "request": "file:node_modules\\request"
+  }
+}
